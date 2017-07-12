@@ -20,7 +20,7 @@ const getEventById = function(id, httpResponse) {
     });
 };
 
-const getEventsByParams = function({serviceId, type}, httpResponse) {
+const getEventsByParams = function({serviceId, type, page}, httpResponse) {
     if (!serviceId && !type) {
         // Return all events
         client.hgetall(EVENT_STORE_KEY, function(err, redisResponse) {
@@ -52,7 +52,6 @@ const postEvent = function({serviceId, type, data}, httpResponse) {
             .incr(EVENT_COUNT_KEY)
             .hset(EVENT_STORE_KEY, eventCount, dataToStore)
             .exec(function(err, redisResponse) {
-                client.unwatch(EVENT_COUNT_KEY);
                 if (err != null) {
                     httpResponse.sendStatus(500);
                 } else if (redisResponse == null) {

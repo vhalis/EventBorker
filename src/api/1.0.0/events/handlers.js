@@ -20,12 +20,16 @@ const getEventById = function(id, httpResponse) {
     });
 };
 
-const getEventsByParams = function({serviceId, type, page}, httpResponse) {
+const getEventsByParams = function({serviceId, type, last}, httpResponse) {
     if (!serviceId && !type) {
-        // Return all events
-        client.hgetall(EVENT_STORE_KEY, function(err, redisResponse) {
-            httpResponse.json(redisResponse);
-        });
+        if (last == null) {
+            // Return all events
+            client.hgetall(EVENT_STORE_KEY, function(err, redisResponse) {
+                httpResponse.json(redisResponse);
+            });
+        } else {
+            // Paginate?
+        }
     }
 };
 

@@ -169,8 +169,6 @@ export default class EventList extends React.Component {
     }
 
     renderSearch(searchByServiceId, searchByType) {
-        // There's a cross interaction between search and pagination
-        // so put page=0 when search value changes
         return (
             <Grid columns={4}>
                 <Grid.Row>
@@ -181,8 +179,7 @@ export default class EventList extends React.Component {
                             placeholder='Search by Service ID'
                             value={searchByServiceId}
                             onChange={(event) => this.setState({
-                                searchByServiceId: event.target.value,
-                                page: 0})} />
+                                searchByServiceId: event.target.value})} />
                     </Grid.Column>
                     <Grid.Column>
                         <Input 
@@ -191,8 +188,7 @@ export default class EventList extends React.Component {
                             placeholder='Search by Type'
                             value={searchByType}
                             onChange={(event) => this.setState({
-                                searchByType: event.target.value,
-                                page: 0})} />
+                                searchByType: event.target.value})} />
                     </Grid.Column>
                     <Grid.Column>
                     </Grid.Column>
@@ -208,6 +204,12 @@ export default class EventList extends React.Component {
             Math.floor(totalEvents / paginateBy) +
             ((totalEvents % paginateBy) > 0 ? 1 : 0)
         );
+
+        // Ensure consistency of page: if events get removed from list, either
+        // by search or by deletion from this or other clients
+        if (page >= totalPages - 1) {
+            this.setState({page: totalPages - 1});
+        }
 
         const pageTabs = (
             <Button.Group>

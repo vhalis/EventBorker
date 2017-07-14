@@ -208,7 +208,7 @@ export default class EventList extends React.Component {
         // Ensure consistency of page: if events get removed from list, either
         // by search or by deletion from this or other clients
         if (page >= totalPages - 1) {
-            this.setState({page: totalPages - 1});
+            page = totalPages - 1;
         }
 
         const pageTabs = (

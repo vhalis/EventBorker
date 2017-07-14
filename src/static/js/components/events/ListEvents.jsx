@@ -199,18 +199,7 @@ export default class EventList extends React.Component {
         );
     }
 
-    renderPaginate(paginateBy, totalEvents, page) {
-        const totalPages = (
-            Math.floor(totalEvents / paginateBy) +
-            ((totalEvents % paginateBy) > 0 ? 1 : 0)
-        );
-
-        // Ensure consistency of page: if events get removed from list, either
-        // by search or by deletion from this or other clients
-        if (page >= totalPages - 1) {
-            page = totalPages - 1;
-        }
-
+    renderPaginate(paginateBy, totalPages, page) {
         const pageTabs = (
             <Button.Group>
                 <Button
@@ -274,15 +263,13 @@ export default class EventList extends React.Component {
         const {
             events,
             isLoading,
-            page,
             paginateBy,
             searchByServiceId,
             searchByType,
             sortBy,
         } = this.state;
-        let eventsToRender = [];
-        const startPaginationIdx = page * paginateBy,
-            endPaginationIdx = startPaginationIdx + paginateBy;
+        let eventsToRender = [],
+            { page } = this.state;
 
         for (const eventId in events) {
             const event = events[eventId];
@@ -326,6 +313,20 @@ export default class EventList extends React.Component {
             </Grid.Row>
         );
 
+        // For pagination
+        const totalPages = (
+            Math.floor(eventsToRender.length / paginateBy) +
+            ((eventsToRender.length % paginateBy) > 0 ? 1 : 0)
+        );
+        // Ensure consistency of page: if events get removed from list, either
+        // by search or by deletion from this or other clients
+        if (page >= totalPages - 1) {
+            page = totalPages - 1;
+        }
+        const startPaginationIdx = page * paginateBy,
+            endPaginationIdx = startPaginationIdx + paginateBy;
+
+
         return (
             <Grid centered>
                 <Grid.Row>
@@ -335,7 +336,7 @@ export default class EventList extends React.Component {
                     {this.renderSearch(searchByServiceId, searchByType)}
                 </Grid.Row>
                 <Grid.Row>
-                    {this.renderPaginate(paginateBy, eventsToRender.length, page)}
+                    {this.renderPaginate(paginateBy, totalPages, page)}
                 </Grid.Row>
                 {eventsToRender.slice(startPaginationIdx, endPaginationIdx)}
                 {isLoading && loader}

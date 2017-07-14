@@ -12,6 +12,12 @@ eventsSocket.on('connection', (socket) => {
     console.log(namespace + ' connected');
     socket.on('disconnect', () => console.log(namespace + ' disconnected'));
     /* eslint-enable no-console */
+    socket.on('loadall', () => {
+        const cb = function(err, redisResponse) {
+            socket.emit('alldata', redisResponse);
+        };
+        getAllEventsRedis(cb);
+    });
 });
 
 client.on('error', function(err) {
@@ -40,12 +46,17 @@ const getEventById = function(id, httpResponse) {
 const getEvents = function(last, httpResponse) {
     if (last == null) {
         // Return all events
-        client.hgetall(EVENT_STORE_KEY, function(err, redisResponse) {
+        const cb = function(err, redisResponse) {
             httpResponse.json(redisResponse);
-        });
+        };
+        getAllEventsRedis(cb);
     } else {
         // TODO: Paginate with Redis cursor
     }
+};
+
+const getAllEventsRedis = function(cb) {
+    client.hgetall(EVENT_STORE_KEY, cb);
 };
 
 const postEvent = function({serviceId, type, data}, httpResponse) {

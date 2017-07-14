@@ -20,6 +20,7 @@ export default class EventList extends React.Component {
         const { paginateByOptions } = this.props;
         this.state = {
             events: {},
+            gotInitialData: false,
             loading: false,
             page: 0,
             paginateBy: (paginateByOptions.length > 0 ? paginateByOptions[0] : 1),
@@ -31,15 +32,20 @@ export default class EventList extends React.Component {
 
     componentDidMount() {
         this.setState({loading: true});
-        this.getInitialData();
         this.setUpSockets();
     }
 
     // API Methods
     setUpSockets() {
         this._socket = socketIO(API_NAMESPACE);
-        this._socket.on('delete', (id) => this.eventDeletedRemote(id));
+        if (!this.state.gotInitialData) {
+            this._socket.emit('loadall', true);
+        }
+        this._socket.on('connect_error', () => this.getInitialData());
         this._socket.on('create', (data) => this.eventCreatedRemote(data));
+        this._socket.on('delete', (id) => this.eventDeletedRemote(id));
+        // The response to loadall
+        this._socket.on('alldata', (data) => this.receiveInitialData(data));
     }
 
     eventDeletedRemote(eventId) {
@@ -67,7 +73,15 @@ export default class EventList extends React.Component {
             fetch(
                 getEventsApiUrl('byId', eventId),
                 {method: 'delete'}
-            );
+            ).then((result) => {
+                // Manual removal if socket is down
+                if (!this._socket.connected && result.status == 200) {
+                    this.setState((prevState) => {
+                        delete prevState.events[eventId];
+                        return {events: prevState.events};
+                    });
+                }
+            });
         } catch (e) {
             // TODO: Notify the specific row that it could not delete
             /* eslint-disable no-console */
@@ -77,21 +91,11 @@ export default class EventList extends React.Component {
     }
 
     getInitialData() {
+        if (this.state.gotInitialData) { return; }
         try {
             fetch(getEventsApiUrl('getOrCreate')).then((result) => {
                 result.json().then((jsonResponse) => {
-                    this.setState((prevState) => {
-                        var newEvents = prevState.events;
-                        for (const eventId in jsonResponse) {
-                            newEvents[eventId] = JSON.parse(
-                                jsonResponse[eventId]);
-                        }
-                        
-                        return {
-                            events: newEvents,
-                            loading: false,
-                        };
-                    });
+                    this.receiveInitialData(jsonResponse);
                 });
             });
         } catch (e) {
@@ -100,6 +104,22 @@ export default class EventList extends React.Component {
             /* eslint-enable no-console */
             this.setState({loading: false});
         }
+    }
+
+    receiveInitialData(data) {
+        this.setState((prevState) => {
+            var newEvents = prevState.events;
+            for (const eventId in data) {
+                newEvents[eventId] = JSON.parse(
+                    data[eventId]);
+            }
+            
+            return {
+                events: newEvents,
+                gotInitialData: true,
+                loading: false,
+            };
+        });
     }
     // End API methods
 

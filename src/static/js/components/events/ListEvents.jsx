@@ -122,6 +122,8 @@ export default class EventList extends React.Component {
     }
 
     renderSearch(searchByServiceId, searchByType) {
+        // There's a cross interaction between search and pagination
+        // so cancel pagination when search value changes
         return (
             <Grid columns={4}>
                 <Grid.Row>
@@ -131,7 +133,9 @@ export default class EventList extends React.Component {
                             placeholder='Search by Service ID'
                             value={searchByServiceId}
                             onChange={(event) => this.setState({
-                                searchByServiceId: event.target.value})} />
+                                searchByServiceId: event.target.value,
+                                page: 0,
+                                paginateBy: 0})} />
                     </Grid.Column>
                     <Grid.Column>
                         <Input 
@@ -139,7 +143,9 @@ export default class EventList extends React.Component {
                             placeholder='Search by Type'
                             value={searchByType}
                             onChange={(event) => this.setState({
-                                searchByType: event.target.value})} />
+                                searchByType: event.target.value,
+                                page: 0,
+                                paginateBy: 0})} />
                     </Grid.Column>
                     <Grid.Column>
                     </Grid.Column>

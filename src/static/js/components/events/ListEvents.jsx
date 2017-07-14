@@ -327,7 +327,7 @@ export default class EventList extends React.Component {
         );
 
         return (
-            <Grid>
+            <Grid centered>
                 <Grid.Row>
                     {this.renderHeader(sortBy)}
                 </Grid.Row>

@@ -32,6 +32,8 @@
     "webpack-dev-server": "^2.5.1"
   },
   "scripts": {
+    "all:windows": "start \"\" redis-server & webpack && node src/api-index.js",
+    "all": "redis-server & webpack && node src/api-index.js",
     "api": "node src/api-index.js",
     "build": "webpack",
     "dev": "webpack-dev-server --hot --progress --color",

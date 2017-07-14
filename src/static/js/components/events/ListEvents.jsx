@@ -1,5 +1,6 @@
 import React from 'react';
-import { Button, Grid, Input, Loader, Menu } from 'semantic-ui-react';
+import PropTypes from 'prop-types';
+import { Button, Grid, Input, Loader } from 'semantic-ui-react';
 
 import { getCurApiUrl } from '../../api-utils.js';
 
@@ -12,11 +13,12 @@ export default class EventList extends React.Component {
 
     constructor(props) {
         super(props);
+        const { paginateByOptions } = this.props;
         this.state = {
             events: {},
             loading: false,
             page: 0,
-            paginateBy: 0,
+            paginateBy: (paginateByOptions.length > 0 ? paginateByOptions[0] : 1),
             searchByServiceId: '',
             searchByType: '',
             sortBy: '',
@@ -29,6 +31,27 @@ export default class EventList extends React.Component {
     }
 
     // API Methods
+    deleteEvent(eventId) {
+        try {
+            fetch(
+                getCurApiUrl(API_ENDPOINT, 'byId', eventId),
+                {method: 'delete'}
+            ).then((result) => {
+                if (result.status === 202) {
+                    this.setState((prevState) => {
+                        delete prevState.events[eventId];
+                        return {events: prevState.events};
+                    });
+                }
+            });
+        } catch (e) {
+            // TODO: Notify the specific row that it could not delete
+            /* eslint-disable no-console */
+            console.log(`Error deleting event ${eventId}`, e);
+            /* eslint-enable no-console */
+        }
+    }
+
     getInitialData() {
         try {
             fetch(getCurApiUrl(API_ENDPOINT, 'getOrCreate')).then((result) => {
@@ -54,26 +77,6 @@ export default class EventList extends React.Component {
             this.setState({loading: false});
         }
     }
-
-    deleteEvent(eventId) {
-        try {
-            fetch(
-                getCurApiUrl(API_ENDPOINT, 'byId', eventId),
-                {method: 'delete'}
-            ).then((result) => {
-                if (result.status === 202) {
-                    this.setState((prevState) => {
-                        delete prevState.events[eventId];
-                        return {events: prevState.events};
-                    });
-                }
-            });
-        } catch (e) {
-            /* eslint-disable no-console */
-            console.log(`Error deleting event ${eventId}`, e);
-            /* eslint-enable no-console */
-        }
-    }
     // End API methods
 
     // Sort methods
@@ -92,7 +95,7 @@ export default class EventList extends React.Component {
         return (
             <Grid columns={4}>
                 <Grid.Row>
-                    <Grid.Column textAlign='middle'>
+                    <Grid.Column textAlign='center'>
                         <Button
                             content='Service ID'
                             size='large'
@@ -100,7 +103,7 @@ export default class EventList extends React.Component {
                             secondary={sortBy !== 'serviceId'}
                             onClick={() => this.setOrUnsetSortBy('serviceId')} />
                     </Grid.Column>
-                    <Grid.Column textAlign='middle'>
+                    <Grid.Column textAlign='center'>
                         <Button
                             content='Type'
                             size='large'
@@ -108,7 +111,7 @@ export default class EventList extends React.Component {
                             secondary={sortBy !== 'type'}
                             onClick={() => this.setOrUnsetSortBy('type')} />
                     </Grid.Column>
-                    <Grid.Column textAlign='middle'>
+                    <Grid.Column textAlign='center'>
                         <Button
                             content='Data'
                             disabled
@@ -130,6 +133,7 @@ export default class EventList extends React.Component {
                     <Grid.Column>
                         <Input 
                             fluid 
+                            focus={searchByServiceId !== ''}
                             placeholder='Search by Service ID'
                             value={searchByServiceId}
                             onChange={(event) => this.setState({
@@ -139,6 +143,7 @@ export default class EventList extends React.Component {
                     <Grid.Column>
                         <Input 
                             fluid 
+                            focus={searchByType !== ''}
                             placeholder='Search by Type'
                             value={searchByType}
                             onChange={(event) => this.setState({
@@ -156,7 +161,7 @@ export default class EventList extends React.Component {
 
     renderPaginate(paginateBy, totalEvents, page) {
         const totalPages = (
-            (totalEvents / paginateBy) +
+            Math.floor(totalEvents / paginateBy) +
             ((totalEvents % paginateBy) > 0 ? 1 : 0)
         );
 
@@ -169,16 +174,16 @@ export default class EventList extends React.Component {
                 <Button
                     content='<'
                     disabled={page <= 0}
-                    onClick={() => this.setState({page: page-1})} />
-                <Button disabled={true} content={page} />
+                    onClick={() => this.setState({page: page - 1})} />
+                <Button disabled content={page + 1} />
                 <Button
                     content='>'
-                    disabled={page >= totalPages}
-                    onClick={() => this.setState({page: page+1})} />
+                    disabled={page >= totalPages - 1}
+                    onClick={() => this.setState({page: page + 1})} />
                 <Button
                     content='>>'
-                    disabled={page >= totalPages}
-                    onClick={() => this.setState({page: totalPages})} />
+                    disabled={page >= totalPages - 1}
+                    onClick={() => this.setState({page: totalPages - 1})} />
             </Button.Group>
         );
 
@@ -192,16 +197,15 @@ export default class EventList extends React.Component {
 
         const paginateOptions = (
             <Button.Group>
-                <Button
-                    content='1'
-                    primary={paginateBy === 1}
-                    secondary={paginateBy !== 1}
-                    onClick={() => changePaginate(1)} />
-                <Button
-                    content='2'
-                    primary={paginateBy === 2}
-                    secondary={paginateBy !== 2}
-                    onClick={() => changePaginate(2)} />
+                <Button disabled content='# Per Page' />
+                {this.props.paginateByOptions.map((num) =>
+                    <Button
+                        key={num}
+                        content={num}
+                        primary={paginateBy === num}
+                        secondary={paginateBy !== num}
+                        onClick={() => changePaginate(num)} />
+                )}
             </Button.Group>
         );
 
@@ -230,11 +234,14 @@ export default class EventList extends React.Component {
             searchByType,
             sortBy,
         } = this.state;
-        var eventsToRender = [];
+        let eventsToRender = [];
+        const startPaginationIdx = page * paginateBy,
+            endPaginationIdx = startPaginationIdx + paginateBy;
 
         for (const eventId in events) {
             const event = events[eventId];
 
+            // Exclude by search
             if (searchByServiceId &&
                     !event.serviceId.includes(searchByServiceId)) {
                 continue;
@@ -243,7 +250,7 @@ export default class EventList extends React.Component {
                     !event.type.includes(searchByType)) {
                 continue;
             }
-            
+
             eventsToRender.push(
                 <Grid.Row
                     key={eventId}
@@ -284,10 +291,18 @@ export default class EventList extends React.Component {
                 <Grid.Row>
                     {this.renderPaginate(paginateBy, eventsToRender.length, page)}
                 </Grid.Row>
-                {eventsToRender}
+                {eventsToRender.slice(startPaginationIdx, endPaginationIdx)}
                 {isLoading && loader}
             </Grid>
         );
     }
     // End Render methods
 }
+
+EventList.propTypes = {
+    paginateByOptions: PropTypes.arrayOf(PropTypes.number),
+};
+
+EventList.defaultProps = {
+    paginateByOptions: [1, 2],
+};

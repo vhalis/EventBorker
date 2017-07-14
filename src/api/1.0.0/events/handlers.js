@@ -1,7 +1,18 @@
 const client = require('redis').createClient();
 
+const { socketServer } = require('../../../api-index.js');
+const { namespace } = require('./routes.js');
+
 const { EVENT_COUNT_KEY, EVENT_STORE_KEY } = require('./util.js');
 
+
+const eventsSocket = socketServer.of(namespace);
+eventsSocket.on('connection', (socket) => {
+    /* eslint-disable no-console */
+    console.log(namespace + ' connected');
+    socket.on('disconnect', () => console.log(namespace + ' disconnected'));
+    /* eslint-enable no-console */
+});
 
 client.on('error', function(err) {
     /* eslint-disable no-console */
@@ -9,27 +20,31 @@ client.on('error', function(err) {
     /* eslint-enable no-console */
 });
 
-const deleteEventById = function(id) {
-    client.hdel(EVENT_STORE_KEY, id);
+const deleteEventById = function(id, httpResponse) {
+    client.hdel(EVENT_STORE_KEY, id, (err) => {
+        if (!err) {
+            eventsSocket.emit('delete', id);
+            httpResponse.sendStatus(200);
+        }
+    });
 };
 
 const getEventById = function(id, httpResponse) {
     client.hget(EVENT_STORE_KEY, id, function(err, redisResponse) {
         // Redis responds with null when an invalid key is requested
+        // which isn't strictly valid JSON
         httpResponse.json(JSON.parse(redisResponse || '{}'));
     });
 };
 
-const getEventsByParams = function({serviceId, type, last}, httpResponse) {
-    if (!serviceId && !type) {
-        if (last == null) {
-            // Return all events
-            client.hgetall(EVENT_STORE_KEY, function(err, redisResponse) {
-                httpResponse.json(redisResponse);
-            });
-        } else {
-            // Paginate?
-        }
+const getEvents = function(last, httpResponse) {
+    if (last == null) {
+        // Return all events
+        client.hgetall(EVENT_STORE_KEY, function(err, redisResponse) {
+            httpResponse.json(redisResponse);
+        });
+    } else {
+        // TODO: Paginate with Redis cursor
     }
 };
 
@@ -64,6 +79,10 @@ const postEvent = function({serviceId, type, data}, httpResponse) {
                     // Ideally, we should retry
                     httpResponse.sendStatus(500);
                 } else {
+                    eventsSocket.emit('create', {
+                        event: dataToStore,
+                        eventId: eventCount,
+                    });
                     httpResponse.json({id: eventCount});
                 }
             });
@@ -73,6 +92,6 @@ const postEvent = function({serviceId, type, data}, httpResponse) {
 module.exports = {
     deleteEventById,
     getEventById,
-    getEventsByParams,
+    getEvents,
     postEvent,
 };

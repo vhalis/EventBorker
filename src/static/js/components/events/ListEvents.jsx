@@ -1,13 +1,17 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Button, Grid, Input, Loader } from 'semantic-ui-react';
+import socketIO from 'socket.io-client';
 
-import { getCurApiUrl } from '../../api-utils.js';
+import { getApiNamespace, getApiUrl } from '../../api-utils.js';
 
 import Event from './Event.jsx';
 
 
+const API_VERSION = 'v1.0.0';
 const API_ENDPOINT = 'events';
+const getEventsApiUrl = getApiUrl.bind(window, API_VERSION, API_ENDPOINT);
+const API_NAMESPACE = getApiNamespace(API_VERSION, API_ENDPOINT);
 
 export default class EventList extends React.Component {
 
@@ -28,22 +32,42 @@ export default class EventList extends React.Component {
     componentDidMount() {
         this.setState({loading: true});
         this.getInitialData();
+        this.setUpSockets();
     }
 
     // API Methods
+    setUpSockets() {
+        this._socket = socketIO(API_NAMESPACE);
+        this._socket.on('delete', (id) => this.eventDeletedRemote(id));
+        this._socket.on('create', (data) => this.eventCreatedRemote(data));
+    }
+
+    eventDeletedRemote(eventId) {
+        this.setState((prevState) => {
+            delete prevState.events[eventId];
+            return {events: prevState.events};
+        }); 
+    }
+
+    eventCreatedRemote({event, eventId}) {
+        try {
+            this.setState((prevState) => {
+                prevState.events[eventId] = JSON.parse(event);
+                return {events: prevState.events};
+            });
+        } catch (e) {
+            /* eslint-disable no-console */
+            console.log(`Error parsing created event ${eventId}: ${event}`, e);
+            /* eslint-enable no-console */
+        }
+    }
+
     deleteEvent(eventId) {
         try {
             fetch(
-                getCurApiUrl(API_ENDPOINT, 'byId', eventId),
+                getEventsApiUrl('byId', eventId),
                 {method: 'delete'}
-            ).then((result) => {
-                if (result.status === 202) {
-                    this.setState((prevState) => {
-                        delete prevState.events[eventId];
-                        return {events: prevState.events};
-                    });
-                }
-            });
+            );
         } catch (e) {
             // TODO: Notify the specific row that it could not delete
             /* eslint-disable no-console */
@@ -54,7 +78,7 @@ export default class EventList extends React.Component {
 
     getInitialData() {
         try {
-            fetch(getCurApiUrl(API_ENDPOINT, 'getOrCreate')).then((result) => {
+            fetch(getEventsApiUrl('getOrCreate')).then((result) => {
                 result.json().then((jsonResponse) => {
                     this.setState((prevState) => {
                         var newEvents = prevState.events;
@@ -304,5 +328,5 @@ EventList.propTypes = {
 };
 
 EventList.defaultProps = {
-    paginateByOptions: [1, 2],
+    paginateByOptions: [5, 10],
 };

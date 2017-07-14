@@ -5,12 +5,17 @@
   "main": "index.js",
   "dependencies": {
     "body-parser": "^1.17.2",
+    "bufferutil": "^3.0.2",
     "express": "^4.15.3",
+    "fs": "0.0.1-security",
     "react": "^15.6.1",
     "react-dom": "^15.6.1",
     "redis": "^2.7.1",
     "semantic-ui-css": "^2.2.11",
-    "semantic-ui-react": "^0.71.0"
+    "semantic-ui-react": "^0.71.0",
+    "socket.io": "^2.0.3",
+    "socket.io-client": "^2.0.3",
+    "utf-8-validate": "^3.0.3"
   },
   "devDependencies": {
     "babel-cli": "^6.24.1",

@@ -1,13 +1,17 @@
-var express = require('express');
+const express = require('express');
+const router = express.Router();
 
-var {
+const { namespace } = require('../routes.js');
+module.exports = {
+    namespace: namespace + '/events',
+};
+
+const {
     deleteEventById,
     getEventById,
-    getEventsByParams,
-    postEvent
+    getEvents,
+    postEvent,
 } = require('./handlers.js');
-
-var router = express.Router();
 
 
 // Get and Delete by event ID
@@ -16,31 +20,17 @@ router.route('/id/:id(\\d+)')
         getEventById(req.params.id, res);
     })
     .delete(function(req, res) {
-        deleteEventById(req.params.id);
-        res.sendStatus(202);
+        deleteEventById(req.params.id, res);
     });
 
 // Get everything or Post a new event
 router.route('/')
     .get(function(req, res) {
-        getEventsByParams({}, res);
+        getEvents(null, res);
     })
     .post(function(req, res) {
         postEvent(req.body, res);
     });
 
 
-// Get by Service ID
-router.get('/service/:serviceId', function(req, res) {
-    getEventsByParams({serviceId: req.params.serviceId}, res);
-});
-
-// Get by Service ID and Type
-router.get('/service/:serviceId/type/:type', function(req, res) {
-    getEventsByParams(
-        {serviceId: req.params.serviceId, type: req.params.type},
-        res);
-});
-
-
-module.exports = router;
+module.exports.router = router;

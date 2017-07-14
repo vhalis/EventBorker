@@ -1,9 +1,14 @@
-var express = require('express');
-var router = express.Router();
+const express = require('express');
+const router = express.Router();
 
-var api100Routes = require('./1.0.0/routes.js');
+const namespace = '/api';
+module.exports = {
+    namespace,
+};
+
+const api100Routes = require('./1.0.0/routes.js');
 
 
-router.use('/v1.0.0', api100Routes);
+router.use('/v1.0.0', api100Routes.router);
 
-module.exports = router;
+module.exports.router = router;

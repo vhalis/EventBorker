@@ -19,7 +19,7 @@ class Event extends React.Component {
                     <Grid.Column><p>{serviceId}</p></Grid.Column>
                     <Grid.Column><p>{type}</p></Grid.Column>
                     <Grid.Column><p>{data}</p></Grid.Column>
-                    <Grid.Column>{deleteButton}</Grid.Column>
+                    <Grid.Column textAlign='right'>{deleteButton}</Grid.Column>
                 </Grid.Row>
             </Grid>
         );

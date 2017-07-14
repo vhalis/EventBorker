@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Grid, Input, Loader } from 'semantic-ui-react';
+import { Button, Grid, Input, Loader, Menu } from 'semantic-ui-react';
 
 import { getCurApiUrl } from '../../api-utils.js';
 
@@ -15,11 +15,12 @@ export default class EventList extends React.Component {
         this.state = {
             events: {},
             loading: false,
+            page: 0,
+            paginateBy: 0,
             searchByServiceId: '',
             searchByType: '',
             sortBy: '',
         };
-        this.deleteEvent = this.deleteEvent.bind(this);
     }
 
     componentDidMount() {
@@ -27,6 +28,7 @@ export default class EventList extends React.Component {
         this.getInitialData();
     }
 
+    // API Methods
     getInitialData() {
         try {
             fetch(getCurApiUrl(API_ENDPOINT, 'getOrCreate')).then((result) => {
@@ -72,7 +74,9 @@ export default class EventList extends React.Component {
             /* eslint-enable no-console */
         }
     }
+    // End API methods
 
+    // Sort methods
     setOrUnsetSortBy(sortField) {
         this.setState((prevState) => {
             if (prevState.sortBy === sortField) {
@@ -81,63 +85,14 @@ export default class EventList extends React.Component {
             return {sortBy: sortField};
         });
     }
+    // End Sort methods
 
-    render() {
-        const {
-            events,
-            isLoading,
-            searchByServiceId,
-            searchByType,
-            sortBy,
-        } = this.state;
-        var eventsToRender = [];
-        for (const eventId in events) {
-            const event = events[eventId];
-
-            if (searchByServiceId &&
-                    !event.serviceId.includes(searchByServiceId)) {
-                continue;
-            }
-            if (searchByType &&
-                    !event.type.includes(searchByType)) {
-                continue;
-            }
-           
-            eventsToRender.push(
-                <Grid.Row
-                    key={eventId}
-                    data-serviceId={event.serviceId}
-                    data-type={event.type}
-                >
-                    <Event
-                        id={eventId}
-                        onDelete={() => this.deleteEvent(eventId)}
-                        {...event} />
-                </Grid.Row>
-            );
-        }
-
-        if (sortBy !== '') {
-            eventsToRender.sort((a, b) => {
-                return a.props['data-' + sortBy] > b.props['data-' + sortBy];
-            });
-        }
-
-        if (isLoading) {
-            eventsToRender.push(
-                <Grid.Row key='loader'>
-                    <Loader
-                        active
-                        key='loader'
-                        inline='centered' />
-                </Grid.Row>
-            );
-        }
-
-        const gridHeader = (
+    // Render methods
+    renderHeader(sortBy) {
+        return (
             <Grid columns={4}>
                 <Grid.Row>
-                    <Grid.Column>
+                    <Grid.Column textAlign='middle'>
                         <Button
                             content='Service ID'
                             size='large'
@@ -145,7 +100,7 @@ export default class EventList extends React.Component {
                             secondary={sortBy !== 'serviceId'}
                             onClick={() => this.setOrUnsetSortBy('serviceId')} />
                     </Grid.Column>
-                    <Grid.Column>
+                    <Grid.Column textAlign='middle'>
                         <Button
                             content='Type'
                             size='large'
@@ -153,7 +108,7 @@ export default class EventList extends React.Component {
                             secondary={sortBy !== 'type'}
                             onClick={() => this.setOrUnsetSortBy('type')} />
                     </Grid.Column>
-                    <Grid.Column>
+                    <Grid.Column textAlign='middle'>
                         <Button
                             content='Data'
                             disabled
@@ -164,8 +119,10 @@ export default class EventList extends React.Component {
                 </Grid.Row>
             </Grid>
         );
+    }
 
-        const gridSearch = (
+    renderSearch(searchByServiceId, searchByType) {
+        return (
             <Grid columns={4}>
                 <Grid.Row>
                     <Grid.Column>
@@ -191,17 +148,155 @@ export default class EventList extends React.Component {
                 </Grid.Row>
             </Grid>
         );
+    }
+
+    renderPaginate(paginateBy, totalEvents, page) {
+        let totalPages = 0;
+        if (paginateBy) {
+            totalPages = (
+                (totalEvents / paginateBy) +
+                ((totalEvents % paginateBy) > 0 ? 1 : 0)
+            );
+        } 
+
+        const pageTabs = (
+            <Button.Group>
+                <Button
+                    content='<<'
+                    disabled={page <= 0}
+                    onClick={() => this.setState({page: 0})} />
+                <Button
+                    content='<'
+                    disabled={page <= 0}
+                    onClick={() => this.setState({page: page-1})} />
+                <Button disabled={true} content={page} />
+                <Button
+                    content='>'
+                    disabled={page >= totalPages}
+                    onClick={() => this.setState({page: page+1})} />
+                <Button
+                    content='>>'
+                    disabled={page >= totalPages}
+                    onClick={() => this.setState({page: totalPages})} />
+            </Button.Group>
+        );
+
+        const changePaginate = (paginateSelection) => {
+            this.setState((prevState) => {
+                if (paginateSelection !== prevState.paginateBy) {
+                    return {paginateBy: paginateSelection, page: 0};
+                }
+            });
+        };
+
+        const paginateOptions = (
+            <Button.Group>
+                <Button
+                    content='1'
+                    primary={paginateBy === 1}
+                    secondary={paginateBy !== 1}
+                    onClick={() => changePaginate(1)} />
+                <Button
+                    content='2'
+                    primary={paginateBy === 2}
+                    secondary={paginateBy !== 2}
+                    onClick={() => changePaginate(2)} />
+            </Button.Group>
+        );
+
+        const togglePaginate = () => {
+            this.setState((prevState) => {
+                return {paginateBy: prevState.paginateBy ? 0 : 1, page: 0};
+            });
+        };
+
+        return (
+            <Grid columns={3}>
+                <Grid.Column>
+                    <Button
+                        content='Paginate'
+                        primary={paginateBy !== 0}
+                        secondary={paginateBy === 0}
+                        onClick={togglePaginate} />
+                </Grid.Column>
+                <Grid.Column>
+                    {paginateBy !== 0 && pageTabs}
+                </Grid.Column>
+                <Grid.Column textAlign='right'>
+                    {paginateBy !== 0 && paginateOptions}
+                </Grid.Column>
+            </Grid>
+        );
+    }
+
+    render() {
+        const {
+            events,
+            isLoading,
+            page,
+            paginateBy,
+            searchByServiceId,
+            searchByType,
+            sortBy,
+        } = this.state;
+        var eventsToRender = [];
+
+        for (const eventId in events) {
+            const event = events[eventId];
+
+            if (searchByServiceId &&
+                    !event.serviceId.includes(searchByServiceId)) {
+                continue;
+            }
+            if (searchByType &&
+                    !event.type.includes(searchByType)) {
+                continue;
+            }
+            
+            eventsToRender.push(
+                <Grid.Row
+                    key={eventId}
+                    data-serviceId={event.serviceId}
+                    data-type={event.type}
+                >
+                    <Event
+                        id={eventId}
+                        onDelete={() => this.deleteEvent(eventId)}
+                        {...event} />
+                </Grid.Row>
+            );
+        }
+
+        if (sortBy !== '') {
+            eventsToRender.sort((a, b) => {
+                return a.props['data-' + sortBy] > b.props['data-' + sortBy];
+            });
+        }
+
+        const loader = (
+            <Grid.Row key='loader'>
+                <Loader
+                    active
+                    key='loader'
+                    inline='centered' />
+            </Grid.Row>
+        );
 
         return (
             <Grid>
                 <Grid.Row>
-                    {gridHeader}
+                    {this.renderHeader(sortBy)}
                 </Grid.Row>
                 <Grid.Row>
-                    {gridSearch}
+                    {this.renderSearch(searchByServiceId, searchByType)}
+                </Grid.Row>
+                <Grid.Row>
+                    {this.renderPaginate(paginateBy, eventsToRender.length, page)}
                 </Grid.Row>
                 {eventsToRender}
+                {isLoading && loader}
             </Grid>
         );
     }
+    // End Render methods
 }

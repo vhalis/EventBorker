@@ -123,7 +123,7 @@ export default class EventList extends React.Component {
 
     renderSearch(searchByServiceId, searchByType) {
         // There's a cross interaction between search and pagination
-        // so cancel pagination when search value changes
+        // so put page=0 when search value changes
         return (
             <Grid columns={4}>
                 <Grid.Row>
@@ -134,8 +134,7 @@ export default class EventList extends React.Component {
                             value={searchByServiceId}
                             onChange={(event) => this.setState({
                                 searchByServiceId: event.target.value,
-                                page: 0,
-                                paginateBy: 0})} />
+                                page: 0})} />
                     </Grid.Column>
                     <Grid.Column>
                         <Input 
@@ -144,8 +143,7 @@ export default class EventList extends React.Component {
                             value={searchByType}
                             onChange={(event) => this.setState({
                                 searchByType: event.target.value,
-                                page: 0,
-                                paginateBy: 0})} />
+                                page: 0})} />
                     </Grid.Column>
                     <Grid.Column>
                     </Grid.Column>
@@ -157,13 +155,10 @@ export default class EventList extends React.Component {
     }
 
     renderPaginate(paginateBy, totalEvents, page) {
-        let totalPages = 0;
-        if (paginateBy) {
-            totalPages = (
-                (totalEvents / paginateBy) +
-                ((totalEvents % paginateBy) > 0 ? 1 : 0)
-            );
-        } 
+        const totalPages = (
+            (totalEvents / paginateBy) +
+            ((totalEvents % paginateBy) > 0 ? 1 : 0)
+        );
 
         const pageTabs = (
             <Button.Group>
@@ -210,26 +205,15 @@ export default class EventList extends React.Component {
             </Button.Group>
         );
 
-        const togglePaginate = () => {
-            this.setState((prevState) => {
-                return {paginateBy: prevState.paginateBy ? 0 : 1, page: 0};
-            });
-        };
-
         return (
             <Grid columns={3}>
                 <Grid.Column>
-                    <Button
-                        content='Paginate'
-                        primary={paginateBy !== 0}
-                        secondary={paginateBy === 0}
-                        onClick={togglePaginate} />
                 </Grid.Column>
                 <Grid.Column>
-                    {paginateBy !== 0 && pageTabs}
+                    {pageTabs}
                 </Grid.Column>
                 <Grid.Column textAlign='right'>
-                    {paginateBy !== 0 && paginateOptions}
+                    {paginateOptions}
                 </Grid.Column>
             </Grid>
         );

@@ -208,6 +208,7 @@ export default class EventList extends React.Component {
         return (
             <Grid columns={3}>
                 <Grid.Column>
+                    <Button disabled content={`${totalPages} pages`} />
                 </Grid.Column>
                 <Grid.Column>
                     {pageTabs}

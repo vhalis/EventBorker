@@ -1,4 +1,5 @@
 var path = require('path');
+var webpack = require('webpack');
 
 var HtmlWebpackPlugin = require('html-webpack-plugin');
 var HTMLWebpackPluginConfig = new HtmlWebpackPlugin({
@@ -38,7 +39,14 @@ module.exports = {
                     'css-loader',
                 ],
             },
+            {
+                test: /\.(jpe?g|png|gif|svg|ttf|eot|woff2?)$/i,
+                loader: "file-loader?name=[name].[ext]",
+            },
         ],
     },
-    plugins: [HTMLWebpackPluginConfig],
+    plugins: [
+        new webpack.NamedModulesPlugin(),
+        HTMLWebpackPluginConfig,
+    ],
 };
